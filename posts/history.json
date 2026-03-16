@@ -1,0 +1,80 @@
+[
+  {
+    "website": "",
+    "da": "",
+    "dr": "",
+    "traffic": "",
+    "image": "posts/images/_1773223674.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 15:08"
+  },
+  {
+    "website": "Digitaljournal.com",
+    "da": 37,
+    "dr": 87,
+    "traffic": "11k",
+    "image": "posts/images/Digitaljournal_com_1773223839.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 15:12"
+  },
+  {
+    "website": "Benzinga.com    ",
+    "da": 31,
+    "dr": 87,
+    "traffic": "1.3M",
+    "image": "posts/images/Benzinga_com    _1773224693.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 15:25"
+  },
+  {
+    "website": "Markets.businessinsider.com",
+    "da": 34,
+    "dr": 92,
+    "traffic": "1.7M",
+    "image": "posts/images/Markets_businessinsider_com_1773225108.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 15:32"
+  },
+  {
+    "website": "Htv10.tv",
+    "da": 64,
+    "dr": 64,
+    "traffic": "4.1K",
+    "image": "posts/images/Htv10_tv_1773226890.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 16:01"
+  },
+  {
+    "website": "Finance.yahoo.com",
+    "da": 57,
+    "dr": 92,
+    "traffic": "142M",
+    "image": "posts/images/Finance_yahoo_com_1773232835.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "facebook"
+    ],
+    "posted_at": "2026-03-11 17:41"
+  }
+]

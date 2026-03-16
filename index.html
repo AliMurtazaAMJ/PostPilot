@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Social Media Poster</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .header { background: #2c3e50; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { background: #3498db; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        .btn:hover { background: #2980b9; }
+        .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; }
+        .section h3 { margin-bottom: 15px; color: #2c3e50; }
+        .capsule { display: inline-block; padding: 10px 20px; margin: 5px; border-radius: 25px; border: 2px solid #ddd; cursor: pointer; transition: all 0.3s; }
+        .capsule:hover { border-color: #3498db; }
+        .capsule.selected { background: #3498db; color: white; border-color: #3498db; }
+        .capsule.selected::after { content: ' ✓'; }
+        table { width: 100%; background: white; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #34495e; color: white; }
+        tr:hover { background: #f9f9f9; }
+        img { max-width: 100px; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; }
+        .modal-content { background: white; margin: 50px auto; padding: 20px; width: 500px; border-radius: 10px; max-height: 80vh; overflow: hidden; position: relative; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .close-icon { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        .close-icon:hover { color: #333; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        .account-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .account-status { padding: 5px 10px; border-radius: 15px; color: white; font-size: 12px; }
+        .status-logged-in { background: #27ae60; }
+        .status-not-logged-in { background: #e74c3c; }
+        .schedule-list { margin-top: 20px; }
+        .schedule-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .template-preview { width: 800px; height: 800px; border: none; transform: scale(0.7); transform-origin: top left; }
+        #templateModal .modal-content { width: 600px; height: 600px; padding: 10px; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Social Media Poster</h1>
+        <div>
+            <button class="btn" onclick="openAccounts()">Accounts</button>
+            <button class="btn" onclick="openScheduler()">Post Scheduler</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h3>Templates</h3>
+            <div id="templatesContainer"></div>
+        </div>
+
+        <div class="section">
+            <h3>Social Media Platforms</h3>
+            <div id="platformsContainer"></div>
+        </div>
+
+        <table id="historyTable">
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>DA</th>
+                    <th>DR</th>
+                    <th>Traffic</th>
+                    <th>Image</th>
+                    <th>Status</th>
+                    <th>Posted At</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="accountsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-icon" onclick="closeModal('accountsModal')">&times;</span>
+            <h2>Social Media Accounts</h2>
+            <div id="accountsList"></div>
+        </div>
+    </div>
+
+    <div id="schedulerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-icon" onclick="closeModal('schedulerModal')">&times;</span>
+            <h2>Post Scheduler</h2>
+            <button class="btn" onclick="showCreateSchedule()">Create New Schedule</button>
+            <div class="schedule-list" id="scheduleList"></div>
+        </div>
+    </div>
+
+    <div id="createScheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-icon" onclick="closeModal('createScheduleModal')">&times;</span>
+            <h2>Create Schedule</h2>
+            <label>Schedule Name</label>
+            <input type="text" id="scheduleName" placeholder="Morning Post">
+            <label>Schedule Time (HH:MM)</label>
+            <input type="time" id="scheduleTime">
+            <button class="btn" onclick="saveNewSchedule()">Save</button>
+            <button class="btn" onclick="closeModal('createScheduleModal')">Cancel</button>
+        </div>
+    </div>
+
+    <div id="templateModal" class="modal">
+        <div class="modal-content">
+            <span class="close-icon" onclick="closeModal('templateModal')">&times;</span>
+            <h2>Template Preview</h2>
+            <div id="templatePreview" style="text-align: center; padding: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTemplate = 'template1';
+        let selectedPlatforms = [];
+
+        function loadTemplates() {
+            const templates = ['template1', 'template2'];
+            const container = document.getElementById('templatesContainer');
+            container.innerHTML = templates.map(t => 
+                `<div class="capsule ${t === selectedTemplate ? 'selected' : ''}" onclick="selectTemplate('${t}')">${t}</div>`
+            ).join('');
+        }
+
+        function loadPlatforms() {
+            const platforms = ['linkedin', 'facebook', 'twitter', 'instagram'];
+            const container = document.getElementById('platformsContainer');
+            container.innerHTML = platforms.map(p => 
+                `<div class="capsule ${selectedPlatforms.includes(p) ? 'selected' : ''}" onclick="togglePlatform('${p}')">${p}</div>`
+            ).join('');
+        }
+
+        function selectTemplate(template) {
+            selectedTemplate = template;
+            loadTemplates();
+            fetch(`/template-preview/${template}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.image_url) {
+                        const img = document.createElement('img');
+                        img.src = data.image_url;
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                        img.style.maxWidth = '600px';
+                        
+                        const previewContainer = document.getElementById('templatePreview');
+                        previewContainer.innerHTML = '';
+                        previewContainer.appendChild(img);
+                        
+                        document.getElementById('templateModal').classList.add('active');
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error loading template preview: ' + err);
+                });
+        }
+
+        function togglePlatform(platform) {
+            const idx = selectedPlatforms.indexOf(platform);
+            if (idx > -1) selectedPlatforms.splice(idx, 1);
+            else selectedPlatforms.push(platform);
+            loadPlatforms();
+            fetch('/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({template: selectedTemplate, platforms: selectedPlatforms})
+            });
+        }
+
+        function loadHistory() {
+            fetch('/history')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.querySelector('#historyTable tbody');
+                    tbody.innerHTML = '';
+                    data.forEach(row => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${row.website}</td>
+                                <td>${row.da}</td>
+                                <td>${row.dr}</td>
+                                <td>${row.traffic}</td>
+                                <td><img src="/${row.image}" alt="Post"></td>
+                                <td>${row.status}</td>
+                                <td>${row.posted_at || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                });
+        }
+
+        function openAccounts() {
+            document.getElementById('accountsModal').classList.add('active');
+            loadAccounts();
+        }
+
+        function loadAccounts() {
+            fetch('/accounts')
+                .then(r => r.json())
+                .then(accounts => {
+                    const list = document.getElementById('accountsList');
+                    list.innerHTML = accounts.map(account => {
+                        const statusClass = account.status === 'logged_in' ? 'status-logged-in' : 'status-not-logged-in';
+                        const statusText = account.status === 'logged_in' ? 'Logged In' : 'Not Logged In';
+                        
+                        let buttons = '';
+                        if (account.status === 'logged_in') {
+                            buttons = `
+                                <button class="btn" onclick="testLogin('${account.platform}')">Test Login</button>
+                                <button class="btn" onclick="loginToPlatform('${account.platform}')">Re-login</button>
+                            `;
+                        } else {
+                            buttons = `<button class="btn" onclick="loginToPlatform('${account.platform}')">Login</button>`;
+                        }
+                        
+                        return `
+                            <div class="account-item">
+                                <div>
+                                    <strong>${account.platform.charAt(0).toUpperCase() + account.platform.slice(1)}</strong>
+                                    <span class="account-status ${statusClass}">${statusText}</span>
+                                </div>
+                                <div>${buttons}</div>
+                            </div>
+                        `;
+                    }).join('');
+                });
+        }
+
+        function testLogin(platform) {
+            fetch(`/test-login/${platform}`)
+                .then(r => r.json())
+                .then(result => {
+                    if (result.status === 'opening test browser') {
+                        alert(`Opening test browser for ${platform}. Check if you're logged in, then close the browser.`);
+                    } else if (result.error) {
+                        alert(`Error: ${result.error}`);
+                    }
+                });
+        }
+
+        function loginToPlatform(platform) {
+            fetch(`/login/${platform}`)
+                .then(r => r.json())
+                .then(result => {
+                    if (result.status === 'opening browser') {
+                        alert(`Opening ${platform} login page. Please complete the login process in the browser.`);
+                        // Refresh accounts after a delay to show updated status
+                        setTimeout(() => {
+                            loadAccounts();
+                        }, 5000);
+                    }
+                });
+        }
+
+        function openScheduler() {
+            document.getElementById('schedulerModal').classList.add('active');
+            loadSchedules();
+        }
+
+        function loadSchedules() {
+            fetch('/schedules')
+                .then(r => r.json())
+                .then(schedules => {
+                    const list = document.getElementById('scheduleList');
+                    list.innerHTML = schedules.map(s => 
+                        `<div class="schedule-item">
+                            <span><b>${s.name}</b> - ${s.time}</span>
+                            <button class="btn" onclick="deleteSchedule('${s.time}')">Delete</button>
+                        </div>`
+                    ).join('');
+                });
+        }
+
+        function showCreateSchedule() {
+            closeModal('schedulerModal');
+            document.getElementById('createScheduleModal').classList.add('active');
+        }
+
+        function saveNewSchedule() {
+            const name = document.getElementById('scheduleName').value;
+            const time = document.getElementById('scheduleTime').value;
+            if (!name || !time) return alert('Fill all fields');
+            
+            fetch('/schedules', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, time})
+            }).then(r => r.json()).then(result => {
+                if (result.error) return alert(result.error);
+                alert('Schedule created');
+                closeModal('createScheduleModal');
+                document.getElementById('scheduleName').value = '';
+                document.getElementById('scheduleTime').value = '';
+                openScheduler();
+            });
+        }
+
+        function deleteSchedule(time) {
+            fetch(`/schedules/${time}`, {method: 'DELETE'})
+                .then(() => loadSchedules());
+        }
+
+        function refreshPreview() {
+            if (selectedTemplate) {
+                fetch(`/template-preview/${selectedTemplate}`)
+                    .then(r => r.text())
+                    .then(html => {
+                        const iframe = document.getElementById('templatePreview');
+                        iframe.srcdoc = html;
+                    })
+                    .catch(err => {
+                        alert('Error refreshing preview: ' + err);
+                    });
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        loadTemplates();
+        loadPlatforms();
+        loadHistory();
+        setInterval(loadHistory, 10000);
+    </script>
+</body>
+</html>
