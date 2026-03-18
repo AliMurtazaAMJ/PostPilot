@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from PIL import Image, ImageDraw, ImageFont
 from playwright.sync_api import sync_playwright
+from dotenv import load_dotenv
 import requests
 import json
 import os
@@ -9,13 +10,19 @@ import threading
 from datetime import datetime
 import psutil
 import random
+import webview
+import pystray
+import socket
+
+load_dotenv()
 
 app = Flask(__name__)
 
 HISTORY_FILE = 'posts/history.json'
 SCHEDULES_FILE = 'posts/schedules.json'
 CONFIG_FILE = 'posts/config.json'
-SHEET_URL = 'https://script.google.com/macros/s/AKfycbxYnXuF5hMMZNE9QgWz-uwxMGYkhSsvN9rOh-c-OzuToqI9em9_CgqGS81UqxQEwHJ5mw/exec'  # Replace with your Apps Script URL
+SHEET_URL = os.getenv('SHEET_URL')
+FONT_PATH = os.getenv('FONT_PATH', 'C:/Windows/Fonts/arialbd.ttf')
 
 def generate_image_with_pil(template_name, website, da, dr, traffic, filename):
     """Generate image using PIL by injecting text into PNG template"""
@@ -33,16 +40,16 @@ def generate_image_with_pil(template_name, website, da, dr, traffic, filename):
             part2 = website_name[mid:]
         else:
             part1 = website_name
-            part2 = "Insider"
+            part2 = " "
         
         # open template
         img = Image.open("template.png").convert("RGBA")
         draw = ImageDraw.Draw(img)
         
         # fonts
-        title_font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 110)
-        value_font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 43)
-        url_font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 32)
+        title_font = ImageFont.truetype(FONT_PATH, 110)
+        value_font = ImageFont.truetype(FONT_PATH, 43)
+        url_font = ImageFont.truetype(FONT_PATH, 32)
         
         # base position
         x = 110
@@ -74,6 +81,42 @@ def generate_image_with_pil(template_name, website, da, dr, traffic, filename):
     except Exception as e:
         print(f"Error generating PIL image: {e}")
         return False
+
+SAMESITE_MAP = {'no_restriction': 'None', 'unspecified': 'None', 'lax': 'Lax', 'strict': 'Strict', 'none': 'None'}
+
+def to_bold(text):
+    normal = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    bold   = '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵'
+    table  = str.maketrans(normal, bold)
+    return text.translate(table)
+
+def build_caption(website, da, dr, traffic):
+    return (
+        f"{to_bold('Premium SaaS Guest Posting on')} {website}\n"
+        f"Boost Your SEO & Organic Traffic\n\n"
+        f"🌐 {to_bold('Website:')} {website}\n"
+        f"📊 {to_bold('DA:')} {da} | {to_bold('DR:')} {dr}\n"
+        f"📈 {to_bold('Monthly Traffic:')} {traffic}\n\n"
+        f"🔥 {to_bold('What We Offer')}\n"
+        f"✔ Do-Follow, SEO-Optimized Backlinks\n"
+        f"✔ Direct Admin-Level Publishing\n"
+        f"✔ Permanent Live Posts\n"
+        f"✔ Fast Google Indexing\n"
+        f"✔ Affordable & Customizable Packages\n"
+        f"✔ Guaranteed Performance\n"
+        f"✔ On-Time Delivery — Every Time\n\n"
+        f"📋 {to_bold('View List:')}\n"
+        f"https://docs.google.com/spreadsheets/d/1Y9kRDPV1wRBQRGZ69Xn2Bn4i_J3Bt94ZyCm8YTz__DM/edit?usp=sharing\n\n"
+        f"📩 {to_bold('Get Started Today!')}\n"
+        f"💬 DM for a FREE Strategy Consultation\n"
+        f"📱 {to_bold('WhatsApp:')} +92 344 4255916"
+    )
+
+def normalize_cookies(cookies):
+    for c in cookies:
+        ss = c.get('sameSite', '')
+        c['sameSite'] = SAMESITE_MAP.get(str(ss).lower(), 'None')
+    return cookies
 
 def load_json(file):
     if os.path.exists(file):
@@ -111,6 +154,10 @@ def template_preview(template_name):
 def serve_image(filename):
     return send_from_directory('posts/images', filename)
 
+@app.route('/icon.png')
+def serve_icon():
+    return send_from_directory('.', 'icon.png')
+
 @app.route('/ali.png')
 def serve_ali_image():
     return send_from_directory('.', 'ali.png')
@@ -123,8 +170,10 @@ def serve_template_image():
 def get_history():
     return jsonify(load_json(HISTORY_FILE))
 
-@app.route('/config', methods=['POST'])
+@app.route('/config', methods=['GET', 'POST'])
 def save_config():
+    if request.method == 'GET':
+        return jsonify(load_json(CONFIG_FILE))
     save_json(CONFIG_FILE, request.json)
     return jsonify({'status': 'saved'})
 
@@ -157,7 +206,7 @@ def get_accounts():
     accounts = []
     
     for platform in platforms:
-        cookie_file = f'cookies/{platform}.pkl'
+        cookie_file = f'cookies/{platform}.json'
         status = 'logged_in' if os.path.exists(cookie_file) else 'not_logged_in'
         accounts.append({
             'platform': platform,
@@ -166,6 +215,22 @@ def get_accounts():
         })
     
     return jsonify(accounts)
+
+@app.route('/cookies/<platform>', methods=['GET', 'POST'])
+def manage_cookies(platform):
+    if platform not in ['linkedin', 'facebook', 'twitter', 'instagram']:
+        return jsonify({'error': 'Invalid platform'}), 400
+    cookie_file = f'cookies/{platform}.json'
+    if request.method == 'GET':
+        if os.path.exists(cookie_file):
+            return jsonify(load_json(cookie_file))
+        return jsonify([])
+    cookies = request.json
+    if not isinstance(cookies, list):
+        return jsonify({'error': 'Cookies must be a JSON array'}), 400
+    os.makedirs('cookies', exist_ok=True)
+    save_json(cookie_file, cookies)
+    return jsonify({'status': 'saved', 'count': len(cookies)})
 
 @app.route('/test-browser')
 def test_browser():
@@ -185,7 +250,7 @@ def test_login_platform(platform):
     if platform not in ['linkedin', 'facebook', 'twitter', 'instagram']:
         return jsonify({'error': 'Invalid platform'}), 400
     
-    cookie_file = f'cookies/{platform}.pkl'
+    cookie_file = f'cookies/{platform}.json'
     if not os.path.exists(cookie_file):
         return jsonify({'error': 'No cookies found for this platform'}), 400
     
@@ -197,13 +262,10 @@ def test_login_platform(platform):
 
 def test_platform_cookies(platform):
     try:
-        import pickle  # Add missing import
-        cookie_file = f'cookies/{platform}.pkl'
-        
-        # Load cookies
-        with open(cookie_file, 'rb') as f:
-            cookies = pickle.load(f)
-        
+        cookie_file = f'cookies/{platform}.json'
+        with open(cookie_file, 'r') as f:
+            cookies = json.load(f)
+        cookies = normalize_cookies(cookies)
         print(f"Testing {platform} with {len(cookies)} cookies...")
         
         with sync_playwright() as p:
@@ -296,10 +358,9 @@ def open_login_browser(platform):
             # Save cookies before browser closes completely
             try:
                 cookies = context.cookies()
-                import pickle
-                cookie_path = f'cookies/{platform}.pkl'
-                with open(cookie_path, 'wb') as f:
-                    pickle.dump(cookies, f)
+                cookie_path = f'cookies/{platform}.json'
+                with open(cookie_path, 'w') as f:
+                    json.dump(cookies, f, indent=2)
                 print(f"Login completed for {platform}! Cookies saved to {cookie_path}")
                 print(f"Saved {len(cookies)} cookies")
             except Exception as e:
@@ -411,10 +472,10 @@ def fetch_and_generate():
   
 
 def post_to_platform(platform, image_path, website, da, dr, traffic):
-    caption = f"Guest Post Available on {website}\n\nDA: {da} | DR: {dr} | Traffic: {traffic}\n\n#guestpost #seo #backlinks"
+    caption = build_caption(website, da, dr, traffic)
     
     # Check if cookies exist
-    cookie_file = f'cookies/{platform}.pkl'
+    cookie_file = f'cookies/{platform}.json'
     if not os.path.exists(cookie_file):
         print(f"No cookies found for {platform}. Please login first.")
         return
@@ -438,11 +499,9 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
                 viewport={'width': 1366, 'height': 768}
             )
             
-            # Load cookies
-            import pickle
-            with open(cookie_file, 'rb') as f:
-                cookies = pickle.load(f)
-            context.add_cookies(cookies)
+            with open(cookie_file, 'r') as f:
+                cookies = json.load(f)
+            context.add_cookies(normalize_cookies(cookies))
             
             page = context.new_page()
             page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
@@ -450,145 +509,155 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
             # Platform-specific automation using real selectors from JS files
             if platform == 'linkedin':
                 page.goto('https://www.linkedin.com/feed/')
-                page.wait_for_timeout(3000)
-                
-                # Click "Start a post" button
-                page.click('button[aria-label="Start a post"]')
+                page.wait_for_timeout(4000)
+
+                # Step 1: Click 'Start a post'
+                page.click('div.share-box-feed-entry__top-bar button')
                 page.wait_for_timeout(2000)
-                
-                # Enter text in editor
-                page.fill('div[contenteditable="true"]', caption)
-                page.wait_for_timeout(1000)
-                
-                # Upload media if available
+
+                # Step 2: Inject image via file chooser intercept
                 if has_media:
-                    page.set_input_files('input[type="file"][accept^="image"]', image_path)
+                    with page.expect_file_chooser() as fc_info:
+                        page.click('button.share-promoted-detour-button[aria-label="Add media"]')
+                    fc_info.value.set_files(image_path)
+                    page.wait_for_timeout(4000)
+
+                    # Step 3: Click Next
+                    next_btn = page.locator('button.share-box-footer__primary-btn[aria-label="Next"]')
+                    next_btn.wait_for(state='visible', timeout=10000)
+                    next_btn.click()
                     page.wait_for_timeout(2000)
-                
-                # Click Post button
-                page.click('button.share-actions__primary-action')
+
+                # Step 4: Type caption
+                editor = page.locator('div.ql-editor[contenteditable="true"]').first
+                editor.wait_for(state='visible', timeout=10000)
+                editor.click()
+                page.wait_for_timeout(500)
+                page.keyboard.type(caption, delay=30)
+                page.wait_for_timeout(1000)
+
+                # Step 5: Click Post
+                post_btn = page.locator('button.share-actions__primary-action')
+                post_btn.wait_for(state='visible', timeout=10000)
+                for _ in range(20):
+                    if not post_btn.is_disabled():
+                        break
+                    page.wait_for_timeout(500)
+                post_btn.click()
                 page.wait_for_timeout(3000)
                 
             elif platform == 'facebook':
                 page.goto('https://www.facebook.com/')
                 page.wait_for_timeout(5000)
-                
+
                 try:
-                    # Click create post area
-                    page.click('div[aria-label="Create a post"] [role="button"]', timeout=10000)
-                    page.wait_for_timeout(3000)
-                    
-                    # Upload media first if available
+                    # # Step 1: Click the create post area
+                    # page.click('div[aria-label="Create a post"][role="button"]', timeout=10000)
+                    # page.wait_for_timeout(2000)
+                    # print("Clicked create post area")
+
+                    # # Step 2: Click Photo/video button to open media uploader
+                    # page.click('div[aria-label="Photo/video"][role="button"]', timeout=10000)
+                    # page.wait_for_timeout(2000)
+                    # print("Clicked Photo/video button")
+
+                    # Step 3: Upload image
                     if has_media:
                         page.set_input_files('input[type="file"][accept*="image"]', image_path)
-                        page.wait_for_timeout(4000)  # Wait for image to process
-                    
-                    # Enter text after media upload (Facebook clears text when uploading)
-                    text_selectors = [
-                        'div[contenteditable="true"][role="textbox"]',
-                        'div[contenteditable="true"]',
-                        '[data-testid="status-attachment-mentions-input"]'
-                    ]
-                    
-                    text_entered = False
-                    for selector in text_selectors:
-                        try:
-                            page.fill(selector, caption)
-                            text_entered = True
-                            print(f"Text entered with selector: {selector}")
-                            break
-                        except:
-                            continue
-                    
-                    if not text_entered:
-                        print("Could not enter text in Facebook post")
-                    
+                        page.wait_for_timeout(4000)
+                        print(f"Uploaded image: {image_path}")
+                    # Step 4: Type caption using keyboard (human-like)
+                    text_box = page.locator('div[contenteditable="true"][role="textbox"]').first
+                    text_box.click()
+                    page.wait_for_timeout(500)
+                    page.keyboard.type(caption, delay=30)
                     page.wait_for_timeout(2000)
-                    
-                    # Try multiple post button selectors
-                    post_selectors = [
-                        '[aria-label="Post"][role="button"]',
-                        'div[aria-label="Post"]',
-                        '[data-testid="react-composer-post-button"]',
-                        'button:has-text("Post")',
-                        '[role="button"]:has-text("Post")'
-                    ]
-                    
-                    posted = False
-                    for selector in post_selectors:
-                        try:
-                            page.click(selector, timeout=5000)
-                            posted = True
-                            print(f"Posted with selector: {selector}")
-                            break
-                        except:
-                            continue
-                    
-                    if not posted:
-                        print("Could not find Facebook post button")
-                        # Try clicking any visible button with 'Post' text
-                        try:
-                            page.click('text=Post', timeout=3000)
-                            posted = True
-                            print("Posted using text selector")
-                        except:
-                            print("All Facebook post attempts failed")
-                    
+                    print("Typed caption")
+                     
+                    # Step 5: Click Next after upload
+                    page.click('div[aria-label="Next"][role="button"]', timeout=10000)
+                    page.wait_for_timeout(2000)
+                    print("Clicked Next after upload")
+
+
+                    # Step 6: Click Post
+                    page.click('div[aria-label="Post"][role="button"]', timeout=10000)
                     page.wait_for_timeout(5000)
-                    
+                    print("Clicked Post button")
+
                 except Exception as fb_error:
                     print(f"Facebook posting error: {fb_error}")
                 
             elif platform == 'twitter':
-                page.goto('https://twitter.com/home')
-                page.wait_for_timeout(3000)
-                
-                # Enter text in composer
-                page.fill('div[data-testid="tweetTextarea_0"]', caption)
+                page.goto('https://x.com/home')
+                page.wait_for_timeout(4000)
+
+                # Type caption
+                editor = page.locator('div[data-testid="tweetTextarea_0"]').first
+                editor.wait_for(state='visible', timeout=10000)
+                editor.click()
+                page.wait_for_timeout(500)
+                page.keyboard.type(caption, delay=30)
                 page.wait_for_timeout(1000)
-                
-                # Upload media if available
+
+                # Inject image directly into file input
                 if has_media:
-                    page.set_input_files('input[data-testid="fileInput"]', image_path)
-                    page.wait_for_timeout(2000)
-                
-                # Click Tweet button
-                page.click('div[data-testid="tweetButton"]')
+                    page.locator('input[data-testid="fileInput"]').set_input_files(image_path)
+                    page.wait_for_timeout(4000)
+
+                # Click Post via JS after waiting for enabled state
+                page.wait_for_selector('button[data-testid="tweetButtonInline"]:not([disabled])', timeout=15000)
+                page.wait_for_timeout(500)
+                page.evaluate("document.querySelector('button[data-testid=\"tweetButtonInline\"]').click()")
                 page.wait_for_timeout(3000)
                 
             elif platform == 'instagram':
                 page.goto('https://www.instagram.com/')
-                page.wait_for_timeout(3000)
-                
-                # Click New post
-                page.click('svg[aria-label="New post"]')
-                page.wait_for_timeout(2000)
-                
-                # Click Post option
-                page.click('svg[aria-label="Post"]')
-                page.wait_for_timeout(2000)
-                
-                # Upload media (required for Instagram)
-                if has_media:
-                    page.set_input_files('input[type="file"][accept*="image"]', image_path)
-                    page.wait_for_timeout(3000)
-                    
-                    # Click Next buttons
-                    page.click('button:has-text("Next")')
-                    page.wait_for_timeout(2000)
-                    page.click('button:has-text("Next")')
-                    page.wait_for_timeout(2000)
-                    
-                    # Enter caption
-                    page.fill('div[aria-label="Write a caption..."]', caption)
-                    page.wait_for_timeout(1000)
-                    
-                    # Click Share
-                    page.click('button:has-text("Share")')
-                    page.wait_for_timeout(3000)
-                else:
+                page.wait_for_timeout(4000)
+
+                if not has_media:
                     print(f"No media found for Instagram - media is required")
                     return
+
+                # Dismiss notification popup if present
+                not_now = page.locator('button._a9--._ap36._a9_1')
+                if not_now.is_visible():
+                    not_now.click()
+                    page.wait_for_timeout(1000)
+
+                # Step 1: Click the + (New post) button
+                page.click('a[role="link"] svg[aria-label="New post"]')
+                page.wait_for_timeout(2000)
+
+                # Step 2: Click 'Post' from the dropdown
+                page.click('a[role="link"]:has(svg[aria-label="Post"])', timeout=10000)
+                page.wait_for_timeout(2000)
+
+                # Step 3: Inject image directly into file input
+                file_input = page.locator('form[role="presentation"] input[type="file"]').first
+                file_input.wait_for(state='attached', timeout=10000)
+                file_input.set_input_files(image_path)
+                page.wait_for_timeout(3000)
+
+                # Step 4: Click Next (crop screen)
+                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
+                page.wait_for_timeout(2000)
+
+                # Step 5: Click Next (filter screen)
+                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
+                page.wait_for_timeout(2000)
+
+                # Step 6: Type caption
+                caption_box = page.locator('div[aria-label="Write a caption..."][contenteditable="true"]').first
+                caption_box.wait_for(state='visible', timeout=10000)
+                caption_box.click()
+                page.wait_for_timeout(500)
+                page.keyboard.type(caption, delay=30)
+                page.wait_for_timeout(1000)
+
+                # Step 7: Click Share and wait for confirmation
+                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Share').click()
+                page.wait_for_selector('div[aria-label="Post shared"][role="dialog"]', state='visible', timeout=60000)
             
             print(f"Posted to {platform} successfully!")
             page.wait_for_timeout(5000)
@@ -603,58 +672,187 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
 
 def check_missed_schedules():
     schedules = load_json(SCHEDULES_FILE)
-    current_time = datetime.now()
-    today = current_time.strftime('%Y-%m-%d')
-    
-    # Load last run date
-    last_run_file = 'posts/last_run.json'
-    last_run_data = load_json(last_run_file)
-    last_run_date = last_run_data.get('date', today)
-    
-    # If app was closed and restarted on same day, check missed schedules
-    if last_run_date == today:
-        current_minutes = current_time.hour * 60 + current_time.minute
-        
-        for schedule in schedules:
-            schedule_time = schedule['time']
-            schedule_hour, schedule_minute = map(int, schedule_time.split(':'))
-            schedule_minutes = schedule_hour * 60 + schedule_minute
-            
-            # If schedule time has passed today, execute it
-            if schedule_minutes < current_minutes:
-                print(f"Running missed schedule: {schedule['name']} at {schedule_time}")
-                fetch_and_generate()
-                time.sleep(5)  # Small delay between missed posts
-    
-    # Update last run date
-    save_json(last_run_file, {'date': today})
+    if not schedules:
+        return
+    today = datetime.now().strftime('%Y-%m-%d')
+    now_minutes = datetime.now().hour * 60 + datetime.now().minute
+    last_run = load_json('posts/last_run.json')
+
+    for schedule in schedules:
+        t = schedule['time']
+        h, m = map(int, t.split(':'))
+        if (h * 60 + m) < now_minutes and last_run.get(t) != today:
+            print(f"Running missed schedule: {schedule['name']} at {t}")
+            last_run[t] = today
+            save_json('posts/last_run.json', last_run)
+            fetch_and_generate()
+            time.sleep(5)
+
 
 def scheduler_loop():
-    # Check for missed schedules on startup
     check_missed_schedules()
-    
+    fired_this_minute = None
+
     while True:
         schedules = load_json(SCHEDULES_FILE)
-        current_time = datetime.now().strftime('%H:%M')
-        
+        now = datetime.now()
+        current_time = now.strftime('%H:%M')
+        today = now.strftime('%Y-%m-%d')
+        last_run = load_json('posts/last_run.json')
+
         for schedule in schedules:
-            if schedule['time'] == current_time:
+            t = schedule['time']
+            if t == current_time and last_run.get(t) != today and fired_this_minute != f"{today}_{t}":
+                print(f"Firing schedule: {schedule['name']} at {t}")
+                fired_this_minute = f"{today}_{t}"
+                last_run[t] = today
+                save_json('posts/last_run.json', last_run)
                 fetch_and_generate()
-                time.sleep(60)  # Prevent duplicate posts in same minute
                 break
-        
+
         time.sleep(30)
-        
-    browser.close()
-    
 
-# Start scheduler in background
-threading.Thread(target=scheduler_loop, daemon=True).start()
 
-if __name__ == '__main__':
+# ── Single instance ──────────────────────────────────────────────────────────
+_LOCK_PORT = 19847  # arbitrary port used as a mutex
+
+def _acquire_instance_lock():
+    """Try to bind a socket. Returns the socket if we are the first instance, None otherwise."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+    try:
+        sock.bind(('127.0.0.1', _LOCK_PORT))
+        sock.listen(1)
+        return sock
+    except OSError:
+        return None
+
+def _focus_existing_instance():
+    """Send a wake signal to the already-running instance."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('127.0.0.1', _LOCK_PORT))
+        s.sendall(b'show')
+        s.close()
+    except Exception:
+        pass
+
+def _listen_for_focus(lock_sock):
+    """Background thread: when a second instance connects, restore the window."""
+    while True:
+        try:
+            conn, _ = lock_sock.accept()
+            conn.recv(16)
+            conn.close()
+            if _window:
+                _window.show()
+                _window.restore()
+        except Exception:
+            break
+
+
+
+
+FLASK_URL = 'http://localhost:5000'
+_window   = None
+_tray     = None
+
+
+def _create_tray_icon():
+    return Image.open('icon.png').convert('RGBA').resize((64, 64))
+
+
+def _show_window(icon, item):
+    _window.show()
+    _window.restore()
+
+
+def _on_closing():
+    _window.hide()
+    return False
+
+
+def _quit_app(icon, item):
+    icon.stop()
+    _window.destroy()
+    os._exit(0)
+
+
+def _start_tray():
+    global _tray
+    menu  = pystray.Menu(
+        pystray.MenuItem('Open PostPilot', _show_window, default=True),
+        pystray.MenuItem('Quit', _quit_app)
+    )
+    _tray = pystray.Icon('PostPilot', _create_tray_icon(), 'PostPilot', menu)
+    _tray.run()
+
+
+def _wait_for_flask(timeout=15):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            requests.get(FLASK_URL, timeout=1)
+            return True
+        except Exception:
+            time.sleep(0.3)
+    return False
+
+
+def _bootstrap():
     os.makedirs('posts/images', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
     os.makedirs('cookies', exist_ok=True)
-    
-    # Run without auto-reload to prevent browser interruption
-    app.run(debug=True, port=5000, use_reloader=False)
+    threading.Thread(target=scheduler_loop, daemon=True).start()
+    _register_startup()
+
+
+def _register_startup():
+    """Add this app to Windows startup via registry (no admin needed)."""
+    try:
+        import winreg
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Windows\CurrentVersion\Run',
+            0, winreg.KEY_SET_VALUE
+        )
+        # Use pythonw.exe so no console window appears on startup
+        pythonw = os.path.join(os.path.dirname(os.sys.executable), 'pythonw.exe')
+        script  = os.path.abspath(__file__)
+        winreg.SetValueEx(key, 'PostPilot', 0, winreg.REG_SZ, f'"{pythonw}" "{script}"')
+        winreg.CloseKey(key)
+    except Exception as e:
+        print(f'Startup registration failed: {e}')
+
+
+_bootstrap()
+
+if __name__ == '__main__':
+    # Single-instance check
+    lock_sock = _acquire_instance_lock()
+    if lock_sock is None:
+        _focus_existing_instance()
+        os._exit(0)
+
+    # Listen for focus requests from future instances
+    threading.Thread(target=_listen_for_focus, args=(lock_sock,), daemon=True).start()
+
+    # Start Flask in background thread
+    threading.Thread(
+        target=lambda: app.run(debug=False, port=5000, use_reloader=False),
+        daemon=True
+    ).start()
+
+    if not _wait_for_flask():
+        print('ERROR: Flask did not start in time.')
+    else:
+        threading.Thread(target=_start_tray, daemon=True).start()
+
+        _window = webview.create_window(
+            'PostPilot', FLASK_URL,
+            width=510,
+        height=630,
+            resizable=False, on_top=False
+        )
+        _window.events.closing += _on_closing
+        webview.start(icon='icon.png')

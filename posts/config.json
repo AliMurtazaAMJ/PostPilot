@@ -1,0 +1,9 @@
+{
+  "template": "template1",
+  "platforms": [
+    "linkedin",
+    "facebook",
+    "instagram",
+    "twitter"
+  ]
+}

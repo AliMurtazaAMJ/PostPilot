@@ -1,3 +1,6 @@
-*.pkl
-*.json
 *.png
+.env
+/venv310
+/cookies
+*.pyc
+*.bat

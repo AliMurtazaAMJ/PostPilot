@@ -1,195 +1,328 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Social Media Poster</title>
+    <title>PostPilot</title>
+    <link rel="icon" type="image/png" href="/icon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; }
-        .header { background: #2c3e50; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .btn { background: #3498db; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
-        .btn:hover { background: #2980b9; }
-        .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
-        .section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; }
-        .section h3 { margin-bottom: 15px; color: #2c3e50; }
-        .capsule { display: inline-block; padding: 10px 20px; margin: 5px; border-radius: 25px; border: 2px solid #ddd; cursor: pointer; transition: all 0.3s; }
-        .capsule:hover { border-color: #3498db; }
-        .capsule.selected { background: #3498db; color: white; border-color: #3498db; }
-        .capsule.selected::after { content: ' ✓'; }
-        table { width: 100%; background: white; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #34495e; color: white; }
-        tr:hover { background: #f9f9f9; }
-        img { max-width: 100px; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; }
-        .modal-content { background: white; margin: 50px auto; padding: 20px; width: 500px; border-radius: 10px; max-height: 80vh; overflow: hidden; position: relative; }
+        html, body { width: 500px; height: 600px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #0f1117; color: #e0e0e0; }
+
+        /* ── Header ── */
+        .header {
+            background: #0f1117;
+            border-bottom: 1px solid #1e2130;
+            padding: 10px 14px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-logo { display: flex; align-items: center; gap: 7px; }
+        .header-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; }
+        .header-logo span { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        .header-actions { display: flex; gap: 6px; }
+
+        /* ── Buttons ── */
+        .btn {
+            background: #1e2130; color: #c0c8e0; border: 1px solid #2a2f45;
+            padding: 5px 11px; cursor: pointer; border-radius: 6px; font-size: 11px;
+            transition: all 0.15s;
+        }
+        .btn:hover { background: #2a3050; color: #fff; border-color: #3b82f6; }
+        .btn-primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .btn-primary:hover { background: #2563eb; border-color: #2563eb; }
+        .btn-danger { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-success { background: #14532d; color: #86efac; border-color: #166534; }
+        .btn-success:hover { background: #166534; }
+        .btn-sm { padding: 3px 8px; font-size: 10px; border-radius: 4px; }
+
+        /* ── Main scroll area ── */
+        .body { height: 514px; overflow-y: auto; padding: 10px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+        .body::-webkit-scrollbar { width: 4px; }
+        .body::-webkit-scrollbar-track { background: #0f1117; }
+        .body::-webkit-scrollbar-thumb { background: #2a2f45; border-radius: 4px; }
+
+        /* ── Cards ── */
+        .card { background: #161b27; border: 1px solid #1e2130; border-radius: 8px; padding: 10px 12px; }
+        .card-title { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+
+        /* ── Platform chips ── */
+        .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+        .chip {
+            padding: 4px 12px; border-radius: 20px; font-size: 11px; cursor: pointer;
+            border: 1px solid #2a2f45; color: #9ca3af; background: #1e2130;
+            transition: all 0.15s; display: flex; align-items: center; gap: 5px;
+        }
+        .chip:hover { border-color: #3b82f6; color: #fff; }
+        .chip.selected { color: #fff; border-color: transparent; }
+        .chip.selected::after { content: ' ✓'; font-size: 10px; opacity: 0.8; }
+        .chip[data-p="linkedin"].selected  { background: #0a66c2; }
+        .chip[data-p="facebook"].selected  { background: #1877f2; }
+        .chip[data-p="twitter"].selected   { background: #1d9bf0; }
+        .chip[data-p="instagram"].selected { background: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
+        .chip[data-t].selected             { background: #3b82f6; }
+
+        /* ── History feed ── */
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .history-feed { display: flex; flex-direction: column; gap: 6px; }
+        .history-card {
+            background: #1a1f2e; border: 1px solid #1e2130; border-radius: 6px;
+            padding: 8px 10px; display: flex; align-items: center; gap: 10px;
+        }
+        .history-thumb { width: 38px; height: 38px; border-radius: 5px; object-fit: cover; flex-shrink: 0; background: #2a2f45; }
+        .history-info { flex: 1; min-width: 0; }
+        .history-site { font-size: 11px; font-weight: 600; color: #e0e0e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-meta { font-size: 10px; color: #6b7280; margin-top: 2px; }
+        .history-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .badge { font-size: 9px; padding: 1px 6px; border-radius: 10px; background: #1e2130; border: 1px solid #2a2f45; color: #9ca3af; }
+        .badge-posted { background: #14532d; border-color: #166534; color: #86efac; }
+        .history-empty { text-align: center; color: #4b5563; font-size: 11px; padding: 20px 0; }
+
+        /* ── Modals ── */
+        .modal { display: none; position: fixed; inset: 0; width: 500px; height: 600px; background: rgba(0,0,0,0.7); z-index: 1000; backdrop-filter: blur(2px); }
         .modal.active { display: flex; align-items: center; justify-content: center; }
-        .close-icon { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
-        .close-icon:hover { color: #333; }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        .account-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .account-status { padding: 5px 10px; border-radius: 15px; color: white; font-size: 12px; }
-        .status-logged-in { background: #27ae60; }
-        .status-not-logged-in { background: #e74c3c; }
-        .schedule-list { margin-top: 20px; }
-        .schedule-item { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .template-preview { width: 800px; height: 800px; border: none; transform: scale(0.7); transform-origin: top left; }
-        #templateModal .modal-content { width: 600px; height: 600px; padding: 10px; overflow: hidden; }
+        .modal-box {
+            background: #161b27; border: 1px solid #2a2f45; border-radius: 10px;
+            width: 460px; max-height: 560px; overflow-y: auto; padding: 16px;
+            position: relative;
+        }
+        .modal-box::-webkit-scrollbar { width: 4px; }
+        .modal-box::-webkit-scrollbar-thumb { background: #2a2f45; border-radius: 4px; }
+        .modal-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px; padding-right: 20px; }
+        .close-btn { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #6b7280; font-size: 16px; cursor: pointer; line-height: 1; }
+        .close-btn:hover { color: #fff; }
+
+        /* ── Form elements ── */
+        .field { margin-bottom: 10px; }
+        .field label { font-size: 10px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+        .field input, .field select {
+            width: 100%; padding: 7px 10px; background: #0f1117; border: 1px solid #2a2f45;
+            border-radius: 6px; color: #e0e0e0; font-size: 11px; outline: none;
+        }
+        .field input:focus, .field select:focus { border-color: #3b82f6; }
+        .modal-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+        /* ── Account items ── */
+        .account-row {
+            background: #0f1117; border: 1px solid #1e2130; border-radius: 6px;
+            padding: 8px 10px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+        }
+        .account-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .icon-linkedin  { background: #0a66c2; }
+        .icon-facebook  { background: #1877f2; }
+        .icon-twitter   { background: #1d9bf0; }
+        .icon-instagram { background: linear-gradient(135deg,#f58529,#dd2a7b); }
+        .account-name { font-size: 12px; font-weight: 600; color: #e0e0e0; flex: 1; }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dot-on  { background: #22c55e; }
+        .dot-off { background: #ef4444; }
+        .account-btns { display: flex; gap: 4px; }
+
+        /* ── Schedule items ── */
+        .schedule-row {
+            background: #0f1117; border: 1px solid #1e2130; border-radius: 6px;
+            padding: 8px 10px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .schedule-time { font-size: 16px; font-weight: 700; color: #3b82f6; font-variant-numeric: tabular-nums; }
+        .schedule-name { font-size: 10px; color: #6b7280; margin-top: 1px; }
+
+        /* ── Cookies editor ── */
+        #cookiesEditor {
+            width: 100%; height: 200px; background: #0f1117; border: 1px solid #2a2f45;
+            border-radius: 6px; color: #86efac; font-family: monospace; font-size: 10px;
+            padding: 8px; resize: none; outline: none;
+        }
+        #cookiesEditor:focus { border-color: #3b82f6; }
+        .cookies-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+
+        /* ── Template preview ── */
+        #templatePreview img { width: 100%; border-radius: 6px; }
+
+        /* ── Divider ── */
+        .divider { height: 1px; background: #1e2130; margin: 4px 0; }
+
+        /* ── Footer ── */
+        .footer {
+            position: fixed; bottom: 0; left: 0; width: 500px;
+            background: #0a0d14; border-top: 1px solid #1e2130;
+            padding: 5px 14px; display: flex; align-items: center; justify-content: center;
+            gap: 5px; font-size: 10px; color: #4b5563; z-index: 999;
+        }
+        .footer a { color: #3b82f6; text-decoration: none; }
+        .footer a:hover { color: #60a5fa; text-decoration: underline; }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h1>Social Media Poster</h1>
-        <div>
-            <button class="btn" onclick="openAccounts()">Accounts</button>
-            <button class="btn" onclick="openScheduler()">Post Scheduler</button>
+        <div class="header-logo">
+            <img src="/icon.png" style="width:22px;height:22px;border-radius:4px;object-fit:cover;">
+            <span>PostPilot</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="openAccounts()">⚙ Accounts</button>
+            <button class="btn btn-primary" onclick="openScheduler()">⏰ Scheduler</button>
         </div>
     </div>
 
-    <div class="container">
-        <div class="section">
-            <h3>Templates</h3>
-            <div id="templatesContainer"></div>
+    <div class="body">
+
+        <!-- Templates -->
+        <div class="card">
+            <div class="card-title">Template</div>
+            <div class="chips" id="templatesContainer"></div>
         </div>
 
-        <div class="section">
-            <h3>Social Media Platforms</h3>
-            <div id="platformsContainer"></div>
+        <!-- Platforms -->
+        <div class="card">
+            <div class="card-title">Platforms</div>
+            <div class="chips" id="platformsContainer"></div>
         </div>
 
-        <table id="historyTable">
-            <thead>
-                <tr>
-                    <th>Website</th>
-                    <th>DA</th>
-                    <th>DR</th>
-                    <th>Traffic</th>
-                    <th>Image</th>
-                    <th>Status</th>
-                    <th>Posted At</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- History -->
+        <div class="card" style="flex:1;">
+            <div class="history-header">
+                <div class="card-title" style="margin:0;">Post History</div>
+                <span id="historyCount" style="font-size:10px;color:#4b5563;"></span>
+            </div>
+            <div class="history-feed" id="historyFeed">
+                <div class="history-empty">No posts yet</div>
+            </div>
+        </div>
+
     </div>
 
+    <!-- ── Accounts Modal ── -->
     <div id="accountsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-icon" onclick="closeModal('accountsModal')">&times;</span>
-            <h2>Social Media Accounts</h2>
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('accountsModal')">✕</button>
+            <div class="modal-title">Accounts</div>
             <div id="accountsList"></div>
         </div>
     </div>
 
+    <!-- ── Cookies Modal ── -->
+    <div id="cookiesModal" class="modal" style="z-index:1100;">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('cookiesModal')">✕</button>
+            <div class="modal-title" id="cookiesModalTitle">Cookies</div>
+            <div class="cookies-toolbar">
+                <span id="cookiesCount" style="font-size:10px;color:#6b7280;"></span>
+                <button class="btn btn-sm btn-danger" onclick="clearCookiesEditor()">Clear</button>
+            </div>
+            <textarea id="cookiesEditor" placeholder="Paste JSON cookies array here..."></textarea>
+            <div class="modal-actions">
+                <label for="cookiesFileInput" class="btn btn-sm" style="cursor:pointer;">📂 Import JSON</label>
+                <input type="file" id="cookiesFileInput" accept=".json" style="display:none;" onchange="importCookiesFile(event)">
+                <button class="btn btn-sm btn-success" onclick="saveCookies()">💾 Save Cookies</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Scheduler Modal ── -->
     <div id="schedulerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-icon" onclick="closeModal('schedulerModal')">&times;</span>
-            <h2>Post Scheduler</h2>
-            <button class="btn" onclick="showCreateSchedule()">Create New Schedule</button>
-            <div class="schedule-list" id="scheduleList"></div>
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('schedulerModal')">✕</button>
+            <div class="modal-title">Post Scheduler</div>
+            <button class="btn btn-primary btn-sm" onclick="showCreateSchedule()" style="margin-bottom:10px;">+ New Schedule</button>
+            <div id="scheduleList"></div>
         </div>
     </div>
 
+    <!-- ── Create Schedule Modal ── -->
     <div id="createScheduleModal" class="modal">
-        <div class="modal-content">
-            <span class="close-icon" onclick="closeModal('createScheduleModal')">&times;</span>
-            <h2>Create Schedule</h2>
-            <label>Schedule Name</label>
-            <input type="text" id="scheduleName" placeholder="Morning Post">
-            <label>Schedule Time (HH:MM)</label>
-            <input type="time" id="scheduleTime">
-            <button class="btn" onclick="saveNewSchedule()">Save</button>
-            <button class="btn" onclick="closeModal('createScheduleModal')">Cancel</button>
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('createScheduleModal')">✕</button>
+            <div class="modal-title">New Schedule</div>
+            <div class="field">
+                <label>Name</label>
+                <input type="text" id="scheduleName" placeholder="Morning Post">
+            </div>
+            <div class="field">
+                <label>Time</label>
+                <input type="time" id="scheduleTime">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-sm" onclick="saveNewSchedule()">Save</button>
+                <button class="btn btn-sm" onclick="closeModal('createScheduleModal')">Cancel</button>
+            </div>
         </div>
     </div>
 
+    <!-- ── Template Preview Modal ── -->
     <div id="templateModal" class="modal">
-        <div class="modal-content">
-            <span class="close-icon" onclick="closeModal('templateModal')">&times;</span>
-            <h2>Template Preview</h2>
-            <div id="templatePreview" style="text-align: center; padding: 20px;"></div>
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('templateModal')">✕</button>
+            <div class="modal-title">Template Preview</div>
+            <div id="templatePreview"></div>
         </div>
+    </div>
+
+    <div class="footer">
+        🛠 tools by <a href="https://www.linkedin.com/in/alimurtazaamj/" target="_blank">AMJ</a>
     </div>
 
     <script>
         let selectedTemplate = 'template1';
         let selectedPlatforms = [];
+        let activeCookiePlatform = null;
+
+        const platformIcons = { linkedin:'in', facebook:'f', twitter:'𝕏', instagram:'📷' };
+        const platformColors = { linkedin:'icon-linkedin', facebook:'icon-facebook', twitter:'icon-twitter', instagram:'icon-instagram' };
 
         function loadTemplates() {
             const templates = ['template1', 'template2'];
-            const container = document.getElementById('templatesContainer');
-            container.innerHTML = templates.map(t => 
-                `<div class="capsule ${t === selectedTemplate ? 'selected' : ''}" onclick="selectTemplate('${t}')">${t}</div>`
+            document.getElementById('templatesContainer').innerHTML = templates.map(t =>
+                `<div class="chip ${t===selectedTemplate?'selected':''}" data-t="${t}" onclick="selectTemplate('${t}')">${t}</div>`
             ).join('');
         }
 
         function loadPlatforms() {
-            const platforms = ['linkedin', 'facebook', 'twitter', 'instagram'];
-            const container = document.getElementById('platformsContainer');
-            container.innerHTML = platforms.map(p => 
-                `<div class="capsule ${selectedPlatforms.includes(p) ? 'selected' : ''}" onclick="togglePlatform('${p}')">${p}</div>`
+            const platforms = ['linkedin','facebook','twitter','instagram'];
+            document.getElementById('platformsContainer').innerHTML = platforms.map(p =>
+                `<div class="chip ${selectedPlatforms.includes(p)?'selected':''}" data-p="${p}" onclick="togglePlatform('${p}')">${platformIcons[p]} ${p}</div>`
             ).join('');
         }
 
-        function selectTemplate(template) {
-            selectedTemplate = template;
+        function selectTemplate(t) {
+            selectedTemplate = t;
             loadTemplates();
-            fetch(`/template-preview/${template}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.image_url) {
-                        const img = document.createElement('img');
-                        img.src = data.image_url;
-                        img.style.width = '100%';
-                        img.style.height = 'auto';
-                        img.style.maxWidth = '600px';
-                        
-                        const previewContainer = document.getElementById('templatePreview');
-                        previewContainer.innerHTML = '';
-                        previewContainer.appendChild(img);
-                        
-                        document.getElementById('templateModal').classList.add('active');
-                    } else {
-                        alert('Error: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(err => {
-                    alert('Error loading template preview: ' + err);
-                });
-        }
-
-        function togglePlatform(platform) {
-            const idx = selectedPlatforms.indexOf(platform);
-            if (idx > -1) selectedPlatforms.splice(idx, 1);
-            else selectedPlatforms.push(platform);
-            loadPlatforms();
-            fetch('/config', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({template: selectedTemplate, platforms: selectedPlatforms})
+            fetch(`/template-preview/${t}`).then(r=>r.json()).then(data => {
+                if (data.image_url) {
+                    document.getElementById('templatePreview').innerHTML = `<img src="${data.image_url}?t=${Date.now()}">`;
+                    document.getElementById('templateModal').classList.add('active');
+                }
             });
         }
 
+        function togglePlatform(p) {
+            const idx = selectedPlatforms.indexOf(p);
+            if (idx > -1) selectedPlatforms.splice(idx,1); else selectedPlatforms.push(p);
+            loadPlatforms();
+            fetch('/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:selectedTemplate,platforms:selectedPlatforms})});
+        }
+
         function loadHistory() {
-            fetch('/history')
-                .then(r => r.json())
-                .then(data => {
-                    const tbody = document.querySelector('#historyTable tbody');
-                    tbody.innerHTML = '';
-                    data.forEach(row => {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td>${row.website}</td>
-                                <td>${row.da}</td>
-                                <td>${row.dr}</td>
-                                <td>${row.traffic}</td>
-                                <td><img src="/${row.image}" alt="Post"></td>
-                                <td>${row.status}</td>
-                                <td>${row.posted_at || '-'}</td>
-                            </tr>
-                        `;
-                    });
-                });
+            fetch('/history').then(r=>r.json()).then(data => {
+                const feed = document.getElementById('historyFeed');
+                const count = document.getElementById('historyCount');
+                if (!data.length) { feed.innerHTML = '<div class="history-empty">No posts yet</div>'; count.textContent=''; return; }
+                count.textContent = `${data.length} post${data.length>1?'s':''}`;
+                feed.innerHTML = [...data].reverse().map(row => {
+                    const platforms = (row.platforms||[]).map(p=>`<span class="badge">${p}</span>`).join('');
+                    return `
+                    <div class="history-card">
+                        <img class="history-thumb" src="/${row.image}" onerror="this.style.display='none'">
+                        <div class="history-info">
+                            <div class="history-site">${row.website}</div>
+                            <div class="history-meta">DA ${row.da} · DR ${row.dr} · ${row.traffic} traffic</div>
+                            <div class="history-badges">
+                                <span class="badge badge-posted">${row.status}</span>
+                                ${platforms}
+                                <span class="badge">${row.posted_at||''}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            });
         }
 
         function openAccounts() {
@@ -198,61 +331,79 @@
         }
 
         function loadAccounts() {
-            fetch('/accounts')
-                .then(r => r.json())
-                .then(accounts => {
-                    const list = document.getElementById('accountsList');
-                    list.innerHTML = accounts.map(account => {
-                        const statusClass = account.status === 'logged_in' ? 'status-logged-in' : 'status-not-logged-in';
-                        const statusText = account.status === 'logged_in' ? 'Logged In' : 'Not Logged In';
-                        
-                        let buttons = '';
-                        if (account.status === 'logged_in') {
-                            buttons = `
-                                <button class="btn" onclick="testLogin('${account.platform}')">Test Login</button>
-                                <button class="btn" onclick="loginToPlatform('${account.platform}')">Re-login</button>
-                            `;
-                        } else {
-                            buttons = `<button class="btn" onclick="loginToPlatform('${account.platform}')">Login</button>`;
-                        }
-                        
-                        return `
-                            <div class="account-item">
-                                <div>
-                                    <strong>${account.platform.charAt(0).toUpperCase() + account.platform.slice(1)}</strong>
-                                    <span class="account-status ${statusClass}">${statusText}</span>
-                                </div>
-                                <div>${buttons}</div>
-                            </div>
-                        `;
-                    }).join('');
+            fetch('/accounts').then(r=>r.json()).then(accounts => {
+                document.getElementById('accountsList').innerHTML = accounts.map(a => {
+                    const on = a.status === 'logged_in';
+                    const btns = on
+                        ? `<button class="btn btn-sm" onclick="testLogin('${a.platform}')">Test</button>
+                           <button class="btn btn-sm" onclick="loginToPlatform('${a.platform}')">Re-login</button>
+                           <button class="btn btn-sm" onclick="openCookies('${a.platform}')">Cookies</button>`
+                        : `<button class="btn btn-sm btn-primary" onclick="loginToPlatform('${a.platform}')">Login</button>
+                           <button class="btn btn-sm" onclick="openCookies('${a.platform}')">Cookies</button>`;
+                    return `
+                    <div class="account-row">
+                        <div class="account-icon ${platformColors[a.platform]}">${platformIcons[a.platform]}</div>
+                        <div class="account-name">${a.platform.charAt(0).toUpperCase()+a.platform.slice(1)}</div>
+                        <div class="status-dot ${on?'dot-on':'dot-off'}"></div>
+                        <div class="account-btns">${btns}</div>
+                    </div>`;
+                }).join('');
+            });
+        }
+
+        function openCookies(platform) {
+            activeCookiePlatform = platform;
+            document.getElementById('cookiesModalTitle').textContent = platform.charAt(0).toUpperCase()+platform.slice(1)+' Cookies';
+            document.getElementById('cookiesEditor').value = '';
+            document.getElementById('cookiesCount').textContent = '';
+            fetch(`/cookies/${platform}`).then(r=>r.json()).then(data => {
+                if (data && data.length) {
+                    document.getElementById('cookiesEditor').value = JSON.stringify(data,null,2);
+                    document.getElementById('cookiesCount').textContent = `${data.length} cookies loaded`;
+                }
+                document.getElementById('cookiesModal').classList.add('active');
+            });
+        }
+
+        function clearCookiesEditor() {
+            document.getElementById('cookiesEditor').value = '';
+            document.getElementById('cookiesCount').textContent = '';
+        }
+
+        function importCookiesFile(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const parsed = JSON.parse(ev.target.result);
+                    document.getElementById('cookiesEditor').value = JSON.stringify(parsed,null,2);
+                    document.getElementById('cookiesCount').textContent = `${parsed.length} cookies from file`;
+                } catch { alert('Invalid JSON file'); }
+            };
+            reader.readAsText(file); e.target.value='';
+        }
+
+        function saveCookies() {
+            const raw = document.getElementById('cookiesEditor').value.trim();
+            if (!raw) return alert('No cookies to save');
+            let parsed; try { parsed = JSON.parse(raw); } catch { return alert('Invalid JSON'); }
+            if (!Array.isArray(parsed)) return alert('Must be a JSON array');
+            fetch(`/cookies/${activeCookiePlatform}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(parsed)})
+                .then(r=>r.json()).then(res => {
+                    if (res.error) return alert(res.error);
+                    document.getElementById('cookiesCount').textContent = `${res.count} cookies saved`;
+                    closeModal('cookiesModal'); loadAccounts();
                 });
         }
 
         function testLogin(platform) {
-            fetch(`/test-login/${platform}`)
-                .then(r => r.json())
-                .then(result => {
-                    if (result.status === 'opening test browser') {
-                        alert(`Opening test browser for ${platform}. Check if you're logged in, then close the browser.`);
-                    } else if (result.error) {
-                        alert(`Error: ${result.error}`);
-                    }
-                });
+            fetch(`/test-login/${platform}`).then(r=>r.json()).then(res => {
+                if (res.error) alert(`Error: ${res.error}`);
+            });
         }
 
         function loginToPlatform(platform) {
-            fetch(`/login/${platform}`)
-                .then(r => r.json())
-                .then(result => {
-                    if (result.status === 'opening browser') {
-                        alert(`Opening ${platform} login page. Please complete the login process in the browser.`);
-                        // Refresh accounts after a delay to show updated status
-                        setTimeout(() => {
-                            loadAccounts();
-                        }, 5000);
-                    }
-                });
+            fetch(`/login/${platform}`).then(r=>r.json()).then(() => setTimeout(loadAccounts, 5000));
         }
 
         function openScheduler() {
@@ -261,17 +412,18 @@
         }
 
         function loadSchedules() {
-            fetch('/schedules')
-                .then(r => r.json())
-                .then(schedules => {
-                    const list = document.getElementById('scheduleList');
-                    list.innerHTML = schedules.map(s => 
-                        `<div class="schedule-item">
-                            <span><b>${s.name}</b> - ${s.time}</span>
-                            <button class="btn" onclick="deleteSchedule('${s.time}')">Delete</button>
-                        </div>`
-                    ).join('');
-                });
+            fetch('/schedules').then(r=>r.json()).then(schedules => {
+                document.getElementById('scheduleList').innerHTML = schedules.length
+                    ? schedules.map(s=>`
+                        <div class="schedule-row">
+                            <div>
+                                <div class="schedule-time">${s.time}</div>
+                                <div class="schedule-name">${s.name}</div>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSchedule('${s.time}')">Remove</button>
+                        </div>`).join('')
+                    : '<div class="history-empty">No schedules yet</div>';
+            });
         }
 
         function showCreateSchedule() {
@@ -282,47 +434,28 @@
         function saveNewSchedule() {
             const name = document.getElementById('scheduleName').value;
             const time = document.getElementById('scheduleTime').value;
-            if (!name || !time) return alert('Fill all fields');
-            
-            fetch('/schedules', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name, time})
-            }).then(r => r.json()).then(result => {
-                if (result.error) return alert(result.error);
-                alert('Schedule created');
-                closeModal('createScheduleModal');
-                document.getElementById('scheduleName').value = '';
-                document.getElementById('scheduleTime').value = '';
-                openScheduler();
-            });
+            if (!name||!time) return alert('Fill all fields');
+            fetch('/schedules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,time})})
+                .then(r=>r.json()).then(res => {
+                    if (res.error) return alert(res.error);
+                    closeModal('createScheduleModal');
+                    document.getElementById('scheduleName').value='';
+                    document.getElementById('scheduleTime').value='';
+                    openScheduler();
+                });
         }
 
         function deleteSchedule(time) {
-            fetch(`/schedules/${time}`, {method: 'DELETE'})
-                .then(() => loadSchedules());
+            fetch(`/schedules/${time}`,{method:'DELETE'}).then(()=>loadSchedules());
         }
 
-        function refreshPreview() {
-            if (selectedTemplate) {
-                fetch(`/template-preview/${selectedTemplate}`)
-                    .then(r => r.text())
-                    .then(html => {
-                        const iframe = document.getElementById('templatePreview');
-                        iframe.srcdoc = html;
-                    })
-                    .catch(err => {
-                        alert('Error refreshing preview: ' + err);
-                    });
-            }
-        }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
+        fetch('/config').then(r=>r.json()).then(c => {
+            if (c.template) selectedTemplate = c.template;
+            if (c.platforms) selectedPlatforms = c.platforms;
+        }).catch(()=>{}).finally(()=>{ loadTemplates(); loadPlatforms(); });
 
-        loadTemplates();
-        loadPlatforms();
         loadHistory();
         setInterval(loadHistory, 10000);
     </script>
