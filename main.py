@@ -799,7 +799,7 @@ def _listen_for_focus(lock_sock):
 
 
 
-FLASK_URL = 'http://localhost:5000'
+FLASK_URL = 'http://localhost:5110'
 _window   = None
 _tray     = None
 
@@ -885,7 +885,7 @@ if __name__ == '__main__':
 
     # Start Flask in background thread
     threading.Thread(
-        target=lambda: app.run(debug=False, port=5000, use_reloader=False),
+        target=lambda: app.run(debug=False, port=5110, use_reloader=False),
         daemon=True
     ).start()
 
