@@ -5,5 +5,6 @@
     "facebook",
     "instagram",
     "twitter"
-  ]
+  ],
+  "headless": true
 }

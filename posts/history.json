@@ -198,5 +198,53 @@
       "instagram"
     ],
     "posted_at": "2026-03-17 21:19"
+  },
+  {
+    "website": "Bbntimes.com",
+    "da": 16,
+    "dr": 71,
+    "traffic": "128K",
+    "image": "posts/images/Bbntimes_com_1773820280.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter"
+    ],
+    "posted_at": "2026-03-18 12:51"
+  },
+  {
+    "website": "Newtelegraphng.com",
+    "da": 27,
+    "dr": 67,
+    "traffic": "50.2K",
+    "image": "posts/images/Newtelegraphng_com_1773820876.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter"
+    ],
+    "posted_at": "2026-03-18 13:01"
+  },
+  {
+    "website": "Sunnewsonline.com",
+    "da": 40,
+    "dr": 74,
+    "traffic": "2k",
+    "image": "posts/images/Sunnewsonline_com_1773820996.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter"
+    ],
+    "posted_at": "2026-03-18 13:03"
   }
 ]

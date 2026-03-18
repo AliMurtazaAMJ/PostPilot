@@ -84,6 +84,45 @@ def generate_image_with_pil(template_name, website, da, dr, traffic, filename):
 
 SAMESITE_MAP = {'no_restriction': 'None', 'unspecified': 'None', 'lax': 'Lax', 'strict': 'Strict', 'none': 'None'}
 
+def show_notification(title, message, color='#3b82f6'):
+    """Tkinter bottom-right popup — ignores Windows DND."""
+    def _show():
+        import tkinter as tk
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.attributes('-topmost', True)
+        root.configure(bg='#161b27')
+        W, H = 300, 70
+        sw = root.winfo_screenwidth()
+        sh = root.winfo_screenheight()
+        root.geometry(f"{W}x{H}+{sw - W - 16}+{sh - H - 50}")
+        frame = tk.Frame(root, bg=color, padx=1, pady=1)
+        frame.pack(fill='both', expand=True)
+        inner = tk.Frame(frame, bg='#161b27', padx=12, pady=10)
+        inner.pack(fill='both', expand=True)
+        tk.Frame(inner, bg=color, width=3).pack(side='left', fill='y', padx=(0, 10))
+        text_frame = tk.Frame(inner, bg='#161b27')
+        text_frame.pack(side='left', fill='both', expand=True)
+        tk.Label(text_frame, text=title, bg='#161b27', fg='#ffffff',
+                 font=('Segoe UI', 9, 'bold'), anchor='w').pack(fill='x')
+        tk.Label(text_frame, text=message, bg='#161b27', fg='#9ca3af',
+                 font=('Segoe UI', 8), anchor='w', wraplength=220).pack(fill='x')
+        tk.Button(inner, text='✕', bg='#161b27', fg='#4b5563', bd=0,
+                  font=('Segoe UI', 8), cursor='hand2',
+                  activebackground='#161b27', activeforeground='#fff',
+                  command=root.destroy).pack(side='right', anchor='n')
+        # slide in
+        final_y = sh - H - 50
+        for y in range(sh, final_y, -4):
+            root.geometry(f"{W}x{H}+{sw - W - 16}+{y}")
+            root.update()
+            root.after(1)
+        root.after(4000, root.destroy)
+        root.mainloop()
+    threading.Thread(target=_show, daemon=True).start()
+
+
+
 def to_bold(text):
     normal = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     bold   = '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵'
@@ -235,8 +274,10 @@ def manage_cookies(platform):
 @app.route('/test-browser')
 def test_browser():
     try:
+        config = load_json(CONFIG_FILE)
+        headless = config.get('headless', False)
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=headless)
             page = browser.new_page()
             page.goto('https://www.google.com')
             page.wait_for_timeout(3000)
@@ -268,8 +309,10 @@ def test_platform_cookies(platform):
         cookies = normalize_cookies(cookies)
         print(f"Testing {platform} with {len(cookies)} cookies...")
         
+        config = load_json(CONFIG_FILE)
+        headless = config.get('headless', False)
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=headless)
             context = browser.new_context()
             
             # Add cookies
@@ -320,9 +363,11 @@ def open_login_browser(platform):
         print(f"Starting login process for {platform}...")
         os.makedirs('cookies', exist_ok=True)
         
+        config = load_json(CONFIG_FILE)
+        headless = config.get('headless', False)
         with sync_playwright() as p:
             print(f"Launching browser for {platform}...")
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=headless)
             
             context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -473,36 +518,34 @@ def fetch_and_generate():
 
 def post_to_platform(platform, image_path, website, da, dr, traffic):
     caption = build_caption(website, da, dr, traffic)
-    
-    # Check if cookies exist
+
     cookie_file = f'cookies/{platform}.json'
     if not os.path.exists(cookie_file):
+        show_notification(f'{platform.title()} ❌', 'No cookies found. Please login first.', '#ef4444')
         print(f"No cookies found for {platform}. Please login first.")
         return
-    
-    # Check if image exists
+
     has_media = os.path.exists(image_path) if image_path else False
-    
+    config = load_json(CONFIG_FILE)
+    headless = config.get('headless', False)
+
     with sync_playwright() as p:
         try:
             browser = p.chromium.launch(
-                headless=False,
+                headless=headless,
                 args=[
                     '--disable-blink-features=AutomationControlled',
                     '--disable-dev-shm-usage',
                     '--no-sandbox'
                 ]
             )
-            
             context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 viewport={'width': 1366, 'height': 768}
             )
-            
             with open(cookie_file, 'r') as f:
                 cookies = json.load(f)
             context.add_cookies(normalize_cookies(cookies))
-            
             page = context.new_page()
             page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
@@ -587,6 +630,7 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
 
                 except Exception as fb_error:
                     print(f"Facebook posting error: {fb_error}")
+                    show_notification('Facebook ⚠️ Error', str(fb_error)[:80], '#f59e0b')
                 
             elif platform == 'twitter':
                 page.goto('https://x.com/home')
@@ -660,10 +704,12 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
                 page.wait_for_selector('div[aria-label="Post shared"][role="dialog"]', state='visible', timeout=60000)
             
             print(f"Posted to {platform} successfully!")
+            show_notification(f'{platform.title()} ✅ Posted', f'Successfully posted on {platform.title()}', '#22c55e')
             page.wait_for_timeout(5000)
-                
+
         except Exception as e:
             print(f"Error posting to {platform}: {e}")
+            show_notification(f'{platform.title()} ❌ Failed', f'Failed to post on {platform.title()}', '#ef4444')
         finally:
             try:
                 browser.close()
