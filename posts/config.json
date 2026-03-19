@@ -6,5 +6,5 @@
     "instagram",
     "twitter"
   ],
-  "headless": true
+  "headless": false
 }

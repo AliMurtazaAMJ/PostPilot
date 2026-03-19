@@ -151,6 +151,20 @@ def build_caption(website, da, dr, traffic):
         f"📱 {to_bold('WhatsApp:')} +92 344 4255916"
     )
 
+def check_internet(retries=10, delay=15):
+    """Block until internet is available. Notifies user on first failure."""
+    for attempt in range(retries):
+        try:
+            requests.get('https://www.google.com', timeout=5)
+            return True
+        except Exception:
+            if attempt == 0:
+                show_notification('📡 No Internet', 'Waiting for connection...', '#f59e0b')
+            print(f"No internet. Retry {attempt+1}/{retries} in {delay}s...")
+            time.sleep(delay)
+    show_notification('📡 Internet Failed', 'Could not connect after retries.', '#ef4444')
+    return False
+
 def normalize_cookies(cookies):
     for c in cookies:
         ss = c.get('sameSite', '')
@@ -417,6 +431,9 @@ def open_login_browser(platform):
         traceback.print_exc()
 def fetch_and_generate():
     print("=== FETCH AND GENERATE DEBUG START ===")
+    if not check_internet():
+        print("ERROR: No internet connection. Aborting.")
+        return
     config = load_json(CONFIG_FILE)
     template = config.get('template', 'template1')
     platforms = config.get('platforms', [])
@@ -493,7 +510,7 @@ def fetch_and_generate():
     
     # Post to platforms
     for platform in platforms:
-        post_to_platform(platform, image_path, website, da, dr, traffic)
+        post_to_platform_with_retry(platform, image_path, website, da, dr, traffic)
     
     # Save history
     history.append({
@@ -516,6 +533,21 @@ def fetch_and_generate():
 
   
 
+def post_to_platform_with_retry(platform, image_path, website, da, dr, traffic, max_retries=3):
+    for attempt in range(1, max_retries + 1):
+        print(f"[{platform}] Attempt {attempt}/{max_retries}")
+        if not check_internet():
+            show_notification(f'{platform.title()} ❌ Failed', 'No internet connection.', '#ef4444')
+            return
+        success = post_to_platform(platform, image_path, website, da, dr, traffic)
+        if success:
+            return
+        if attempt < max_retries:
+            show_notification(f'{platform.title()} 🔄 Retrying', f'Attempt {attempt} failed. Retrying in 10s...', '#f59e0b')
+            print(f"[{platform}] Attempt {attempt} failed. Waiting 10s before retry...")
+            time.sleep(10)
+    show_notification(f'{platform.title()} ❌ Failed', f'All {max_retries} attempts failed.', '#ef4444')
+
 def post_to_platform(platform, image_path, website, da, dr, traffic):
     caption = build_caption(website, da, dr, traffic)
 
@@ -523,7 +555,7 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
     if not os.path.exists(cookie_file):
         show_notification(f'{platform.title()} ❌', 'No cookies found. Please login first.', '#ef4444')
         print(f"No cookies found for {platform}. Please login first.")
-        return
+        return False
 
     has_media = os.path.exists(image_path) if image_path else False
     config = load_json(CONFIG_FILE)
@@ -549,167 +581,135 @@ def post_to_platform(platform, image_path, website, da, dr, traffic):
             page = context.new_page()
             page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
-            # Platform-specific automation using real selectors from JS files
             if platform == 'linkedin':
-                page.goto('https://www.linkedin.com/feed/')
-                page.wait_for_timeout(4000)
+                page.goto('https://www.linkedin.com/feed/', wait_until='domcontentloaded', timeout=60000)
+                page.wait_for_timeout(6000)
 
-                # Step 1: Click 'Start a post'
                 page.click('div.share-box-feed-entry__top-bar button')
-                page.wait_for_timeout(2000)
+                page.wait_for_timeout(3000)
 
-                # Step 2: Inject image via file chooser intercept
                 if has_media:
                     with page.expect_file_chooser() as fc_info:
                         page.click('button.share-promoted-detour-button[aria-label="Add media"]')
                     fc_info.value.set_files(image_path)
-                    page.wait_for_timeout(4000)
+                    page.wait_for_timeout(6000)
 
-                    # Step 3: Click Next
                     next_btn = page.locator('button.share-box-footer__primary-btn[aria-label="Next"]')
-                    next_btn.wait_for(state='visible', timeout=10000)
+                    next_btn.wait_for(state='visible', timeout=15000)
                     next_btn.click()
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(3000)
 
-                # Step 4: Type caption
                 editor = page.locator('div.ql-editor[contenteditable="true"]').first
-                editor.wait_for(state='visible', timeout=10000)
+                editor.wait_for(state='visible', timeout=15000)
                 editor.click()
                 page.wait_for_timeout(500)
                 page.keyboard.type(caption, delay=30)
                 page.wait_for_timeout(1000)
 
-                # Step 5: Click Post
                 post_btn = page.locator('button.share-actions__primary-action')
-                post_btn.wait_for(state='visible', timeout=10000)
+                post_btn.wait_for(state='visible', timeout=15000)
                 for _ in range(20):
                     if not post_btn.is_disabled():
                         break
                     page.wait_for_timeout(500)
                 post_btn.click()
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(5000)
                 
             elif platform == 'facebook':
-                page.goto('https://www.facebook.com/')
-                page.wait_for_timeout(5000)
+                page.goto('https://www.facebook.com/', wait_until='domcontentloaded', timeout=60000)
+                page.wait_for_timeout(7000)
 
                 try:
-                    # # Step 1: Click the create post area
-                    # page.click('div[aria-label="Create a post"][role="button"]', timeout=10000)
-                    # page.wait_for_timeout(2000)
-                    # print("Clicked create post area")
-
-                    # # Step 2: Click Photo/video button to open media uploader
-                    # page.click('div[aria-label="Photo/video"][role="button"]', timeout=10000)
-                    # page.wait_for_timeout(2000)
-                    # print("Clicked Photo/video button")
-
-                    # Step 3: Upload image
                     if has_media:
                         page.set_input_files('input[type="file"][accept*="image"]', image_path)
-                        page.wait_for_timeout(4000)
+                        page.wait_for_timeout(6000)
                         print(f"Uploaded image: {image_path}")
-                    # Step 4: Type caption using keyboard (human-like)
+
                     text_box = page.locator('div[contenteditable="true"][role="textbox"]').first
                     text_box.click()
                     page.wait_for_timeout(500)
                     page.keyboard.type(caption, delay=30)
                     page.wait_for_timeout(2000)
-                    print("Typed caption")
-                     
-                    # Step 5: Click Next after upload
-                    page.click('div[aria-label="Next"][role="button"]', timeout=10000)
-                    page.wait_for_timeout(2000)
-                    print("Clicked Next after upload")
 
+                    page.click('div[aria-label="Next"][role="button"]', timeout=15000)
+                    page.wait_for_timeout(3000)
 
-                    # Step 6: Click Post
-                    page.click('div[aria-label="Post"][role="button"]', timeout=10000)
-                    page.wait_for_timeout(5000)
-                    print("Clicked Post button")
+                    page.click('div[aria-label="Post"][role="button"]', timeout=15000)
+                    page.wait_for_timeout(6000)
 
                 except Exception as fb_error:
                     print(f"Facebook posting error: {fb_error}")
                     show_notification('Facebook ⚠️ Error', str(fb_error)[:80], '#f59e0b')
+                    return False
                 
             elif platform == 'twitter':
-                page.goto('https://x.com/home')
-                page.wait_for_timeout(4000)
+                page.goto('https://x.com/home', wait_until='domcontentloaded', timeout=60000)
+                page.wait_for_timeout(6000)
 
-                # Type caption
                 editor = page.locator('div[data-testid="tweetTextarea_0"]').first
-                editor.wait_for(state='visible', timeout=10000)
+                editor.wait_for(state='visible', timeout=15000)
                 editor.click()
                 page.wait_for_timeout(500)
                 page.keyboard.type(caption, delay=30)
                 page.wait_for_timeout(1000)
 
-                # Inject image directly into file input
                 if has_media:
                     page.locator('input[data-testid="fileInput"]').set_input_files(image_path)
-                    page.wait_for_timeout(4000)
+                    page.wait_for_timeout(6000)
 
-                # Click Post via JS after waiting for enabled state
-                page.wait_for_selector('button[data-testid="tweetButtonInline"]:not([disabled])', timeout=15000)
+                page.wait_for_selector('button[data-testid="tweetButtonInline"]:not([disabled])', timeout=20000)
                 page.wait_for_timeout(500)
                 page.evaluate("document.querySelector('button[data-testid=\"tweetButtonInline\"]').click()")
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(5000)
                 
             elif platform == 'instagram':
-                page.goto('https://www.instagram.com/')
-                page.wait_for_timeout(4000)
+                page.goto('https://www.instagram.com/', wait_until='domcontentloaded', timeout=60000)
+                page.wait_for_timeout(6000)
 
                 if not has_media:
                     print(f"No media found for Instagram - media is required")
-                    return
+                    return False
 
-                # Dismiss notification popup if present
                 not_now = page.locator('button._a9--._ap36._a9_1')
                 if not_now.is_visible():
                     not_now.click()
                     page.wait_for_timeout(1000)
 
-                # Step 1: Click the + (New post) button
                 page.click('a[role="link"] svg[aria-label="New post"]')
-                page.wait_for_timeout(2000)
-
-                # Step 2: Click 'Post' from the dropdown
-                page.click('a[role="link"]:has(svg[aria-label="Post"])', timeout=10000)
-                page.wait_for_timeout(2000)
-
-                # Step 3: Inject image directly into file input
-                file_input = page.locator('form[role="presentation"] input[type="file"]').first
-                file_input.wait_for(state='attached', timeout=10000)
-                file_input.set_input_files(image_path)
                 page.wait_for_timeout(3000)
 
-                # Step 4: Click Next (crop screen)
-                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
-                page.wait_for_timeout(2000)
+                page.click('a[role="link"]:has(svg[aria-label="Post"])', timeout=15000)
+                page.wait_for_timeout(3000)
 
-                # Step 5: Click Next (filter screen)
-                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
-                page.wait_for_timeout(2000)
+                file_input = page.locator('form[role="presentation"] input[type="file"]').first
+                file_input.wait_for(state='attached', timeout=15000)
+                file_input.set_input_files(image_path)
+                page.wait_for_timeout(5000)
 
-                # Step 6: Type caption
+                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
+                page.wait_for_timeout(3000)
+
+                page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Next').click()
+                page.wait_for_timeout(3000)
+
                 caption_box = page.locator('div[aria-label="Write a caption..."][contenteditable="true"]').first
-                caption_box.wait_for(state='visible', timeout=10000)
+                caption_box.wait_for(state='visible', timeout=15000)
                 caption_box.click()
                 page.wait_for_timeout(500)
                 page.keyboard.type(caption, delay=30)
                 page.wait_for_timeout(1000)
 
-                # Step 7: Click Share and wait for confirmation
                 page.locator('div._ac7b._ac7d div[role="button"]').filter(has_text='Share').click()
                 page.wait_for_selector('div[aria-label="Post shared"][role="dialog"]', state='visible', timeout=60000)
             
             print(f"Posted to {platform} successfully!")
             show_notification(f'{platform.title()} ✅ Posted', f'Successfully posted on {platform.title()}', '#22c55e')
             page.wait_for_timeout(5000)
+            return True
 
         except Exception as e:
             print(f"Error posting to {platform}: {e}")
-            show_notification(f'{platform.title()} ❌ Failed', f'Failed to post on {platform.title()}', '#ef4444')
+            return False
         finally:
             try:
                 browser.close()
@@ -738,6 +738,7 @@ def check_missed_schedules():
 def scheduler_loop():
     check_missed_schedules()
     fired_this_minute = None
+    last_missed_check = datetime.now()
 
     while True:
         schedules = load_json(SCHEDULES_FILE)
@@ -745,6 +746,11 @@ def scheduler_loop():
         current_time = now.strftime('%H:%M')
         today = now.strftime('%Y-%m-%d')
         last_run = load_json('posts/last_run.json')
+
+        # Re-check missed schedules every 5 minutes
+        if (now - last_missed_check).total_seconds() >= 300:
+            check_missed_schedules()
+            last_missed_check = now
 
         for schedule in schedules:
             t = schedule['time']

@@ -1,237 +1,5 @@
 [
   {
-    "website": "Bignewsnetwork.com",
-    "da": 20,
-    "dr": 77,
-    "traffic": "309K",
-    "image": "posts/images/Bignewsnetwork_com_1773743467.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "twitter",
-      "facebook",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 15:32"
-  },
-  {
-    "website": "Newsnetmedia.com",
-    "da": 7,
-    "dr": 66,
-    "traffic": 10,
-    "image": "posts/images/Newsnetmedia_com_1773744155.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "twitter",
-      "facebook",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 15:42"
-  },
-  {
-    "website": "Altafiber.net",
-    "da": 19,
-    "dr": 27,
-    "traffic": "17K",
-    "image": "posts/images/Altafiber_net_1773745340.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "twitter",
-      "facebook",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 16:04"
-  },
-  {
-    "website": "Armstrongmywire.com",
-    "da": 34,
-    "dr": 40,
-    "traffic": "494K",
-    "image": "posts/images/Armstrongmywire_com_1773745952.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:13"
-  },
-  {
-    "website": "Hawaiiantel.net",
-    "da": 26,
-    "dr": 34,
-    "traffic": "28.3K",
-    "image": "posts/images/Hawaiiantel_net_1773746042.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:14"
-  },
-  {
-    "website": "Hawaiiantel.net",
-    "da": 26,
-    "dr": 34,
-    "traffic": "28.3K",
-    "image": "posts/images/Hawaiiantel_net_1773746094.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:15"
-  },
-  {
-    "website": "Windstream.net",
-    "da": 54,
-    "dr": 66,
-    "traffic": "166k",
-    "image": "posts/images/Windstream_net_1773746422.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:21"
-  },
-  {
-    "website": "My.gvtc.com",
-    "da": 41,
-    "dr": 59,
-    "traffic": "1.6k",
-    "image": "posts/images/My_gvtc_com_1773746573.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:23"
-  },
-  {
-    "website": "Portal.tds.net",
-    "da": 57,
-    "dr": 69,
-    "traffic": "61K",
-    "image": "posts/images/Portal_tds_net_1773746637.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:24"
-  },
-  {
-    "website": "Thedatascientist.com",
-    "da": 36,
-    "dr": 63,
-    "traffic": "91.3K",
-    "image": "posts/images/Thedatascientist_com_1773747959.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:46"
-  },
-  {
-    "website": "Goodmenproject.com",
-    "da": 38,
-    "dr": 79,
-    "traffic": "10K",
-    "image": "posts/images/Goodmenproject_com_1773747992.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook"
-    ],
-    "posted_at": "2026-03-17 16:46"
-  },
-  {
-    "website": "Azbigmedia.com",
-    "da": 26,
-    "dr": 78,
-    "traffic": "258K",
-    "image": "posts/images/Azbigmedia_com_1773760635.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook",
-      "linkedin",
-      "twitter",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 20:20"
-  },
-  {
-    "website": "Editorialge.com",
-    "da": 32,
-    "dr": 74,
-    "traffic": "3k",
-    "image": "posts/images/Editorialge_com_1773762621.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "facebook",
-      "linkedin",
-      "twitter",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 20:50"
-  },
-  {
-    "website": "Thesouthafrican.com",
-    "da": 70,
-    "dr": 75,
-    "traffic": "2.6M",
-    "image": "posts/images/Thesouthafrican_com_1773764107.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "facebook",
-      "twitter",
-      "instagram"
-    ],
-    "posted_at": "2026-03-17 21:19"
-  },
-  {
-    "website": "Bbntimes.com",
-    "da": 16,
-    "dr": 71,
-    "traffic": "128K",
-    "image": "posts/images/Bbntimes_com_1773820280.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "facebook",
-      "instagram",
-      "twitter"
-    ],
-    "posted_at": "2026-03-18 12:51"
-  },
-  {
-    "website": "Newtelegraphng.com",
-    "da": 27,
-    "dr": 67,
-    "traffic": "50.2K",
-    "image": "posts/images/Newtelegraphng_com_1773820876.png",
-    "template": "template1",
-    "status": "posted",
-    "platforms": [
-      "linkedin",
-      "facebook",
-      "instagram",
-      "twitter"
-    ],
-    "posted_at": "2026-03-18 13:01"
-  },
-  {
     "website": "Sunnewsonline.com",
     "da": 40,
     "dr": 74,
@@ -246,5 +14,37 @@
       "twitter"
     ],
     "posted_at": "2026-03-18 13:03"
+  },
+  {
+    "website": "Portotheme.com",
+    "da": 65,
+    "dr": 90,
+    "traffic": "35.6-K",
+    "image": "posts/images/Portotheme_com_1773846034.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter"
+    ],
+    "posted_at": "2026-03-18 20:04"
+  },
+  {
+    "website": "gracethemes.com",
+    "da": 38,
+    "dr": 82,
+    "traffic": "1.2-K",
+    "image": "posts/images/gracethemes_com_1773940221.png",
+    "template": "template1",
+    "status": "posted",
+    "platforms": [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter"
+    ],
+    "posted_at": "2026-03-19 22:14"
   }
 ]
